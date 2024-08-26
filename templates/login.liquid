@@ -2,41 +2,13 @@
 <html>
   <head>
     {%- auth0:head -%}
-    <link rel="shortcut icon" href="https://www.effectivealtruism.org/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://www.givingwhatwecan.org/favicons/favicon-16x16.png" sizes="16x16">
+    <link rel="shortcut icon" href="https://www.givingwhatwecan.org/favicons/favicon-96x96.png" sizes="96x96">
     {% if application.name contains "Giving" %}
     <style>
-      /* GWWC COLORS */
-      :root {
-        --page-background-color: white;
-        --primary-color:  #ab2b24;
-        --action-primary-color: #ab2b24;
-      }
-      /* setting above variables should be enough, but somehow auth0 also decides to add a second css line with the colors hardcoded, so we need to mark these vars as important */
-      body {
-        background: var(--page-background-color) !important;
-      }
-      /* Sign up button and accept access buttons */
-      button[value="default"], button[value="accept"] {
-        background-color: var(--primary-color) !important;
-      }
       /* GWWC LOGO: hide img + abuse h1 to show GWWC logo */
       #prompt-logo-center {
         display: none;
-      }
-      header p {
-        text-indent: -9999999px;
-        font-size: 0px !important;
-      }
-      header p:after {
-        {% if prompt.name contains "signup" %}
-        content: "Sign Up to Giving What We Can";
-        {% else %}
-        content: "Log in to your Giving What We Can account";
-        {% endif %}
-        text-indent: 0;
-        display: block;
-        font-size: 1rem;
-        line-height: initial;
       }
       h1 {
         text-indent: -9999999px;
@@ -55,7 +27,7 @@
     </style>
     {% endif %}
     <style>
-      .ea-layout {
+      .gwwc-layout {
         display: flex;
         width: auto;
         flex-direction: column;
@@ -63,15 +35,15 @@
         align-items: center;
       }
       @media (min-width: 480px) {
-        .ea-layout {
+        .gwwc-layout {
           width: 100%;
         }
       }
       @media (min-width: 1070px) {
-        .ea-layout {
+        .gwwc-layout {
           padding: 80px 0;
         }
-        .ea-layout-contact {
+        .gwwc-layout-contact {
           flex-direction: column;
           align-items: center;
         }
@@ -114,11 +86,10 @@
     </style>
   </head>
   <body>
-    <div class="ea-layout ea-layout-contact">
+    <div class="gwwc-layout gwwc-layout-contact">
       <div class="widget-wrapper">
         {%- auth0:widget -%}
       </div>
-      {% if application.name contains "Giving" %}
       <div class="secondary-box">
         By creating a <a href="https://www.givingwhatwecan.org/" target="_blank" rel="noreferrer">Giving What We Can</a> account,
         you agree to the <a href="https://www.givingwhatwecan.org/terms" target="_blank" rel="noreferrer">Terms of Use</a> and <a href="https://www.givingwhatwecan.org/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
@@ -126,15 +97,6 @@
       <div class="secondary-box contact-us">
         Having issues? <strong><a href="https://www.givingwhatwecan.org/about-us/contact-us">Get in touch</a></strong>.
       </div>
-      {% else %}
-      <div class="secondary-box">
-        By creating an <a href="https://effectivealtruism.org" target="_blank" rel="noreferrer">EffectiveAltruism.org</a> account,
-        you agree to the <a href="https://effectivealtruism.org/terms-and-conditions" target="_blank" rel="noreferrer">Terms of Use</a> and <a href="https://ev.org/ops/about/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</a>.
-      </div>
-      <div class="secondary-box contact-us">
-        Having issues? <strong><a href="https://centreforeffectivealtruism.org/contact">Get in touch</a></strong>.
-      </div>
-      {% endif %}
     </div>
   </body>
 </html>

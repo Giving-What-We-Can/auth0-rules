@@ -4,7 +4,10 @@ declare global {
 
   // --- DB Globals ---
   /** Global error class */
-  class WrongUsernameOrPasswordError extends Error {}
+  class WrongUsernameOrPasswordError extends Error {
+    constructor(identifier: string, message: string)
+    identifier: string
+  }
   /** Return this in `login` if user authentication fails. Auth0 provides this as a global. */
   const WrongUsernameOrPasswordError: WrongUsernameOrPasswordError
 }
