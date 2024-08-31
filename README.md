@@ -31,11 +31,9 @@ This is a clone of a repository that used to be shared with the [Centre For Effe
 
 ## Context
 
-[CEA](https://www.centreforeffectivealtruism.org) uses
-[Auth0](https://auth0.com/) to provide authentication and authorization to a
-number of services (e.g. [EA Funds](https://funds.effectivealtruism.org),
-[Giving What We Can](https://www.givingwhatwecan.org), the
-[EA Forum](https://forum.effectivealtruism.org) etc).
+[GWWC](https://www.givingwhatwecan.org) uses [Auth0](https://auth0.com/) to
+provide authentication and authorization to a number of services (e.g.
+[Giving What We Can](https://www.givingwhatwecan.org)).
 
 Auth0 provides a number of places where they call our code and allow us to
 perform custom modifications to their default behavior, such as
@@ -84,14 +82,15 @@ rules.
 ## Installation
 
 - Clone the repository
-  (`git clone https://github.com/centre-for-effective-altruism/auth0-rules.git`)
+  (`git clone https://github.com/giving-what-we-can/auth0-rules.git`)
 - `cd` into the directory (`cd auth0-rules`)
 - Install dependencies (`yarn`)
+- Setup your `.env` file
 - Build the CLI scripts and rule definitions (`yarn build`)
 
 ## Usage
 
-Sync with Auth0 using `yarn cli [rules|db|login]`
+Sync with Auth0 using `yarn cli [actions|rules|db|login]`
 
 ```
 Usage: yarn cli rules [options] [command]
@@ -111,7 +110,7 @@ Commands:
 #### `deploy`
 
 ```sh
-yarn cli [rules|db|login] deploy
+yarn cli [actions|rules|db|login] deploy
 ```
 
 Deploys all scripts in the manifest to Auth0.
@@ -124,7 +123,7 @@ are in the manifest.
 #### `diff`
 
 ```
-yarn cli [rules|db|login] diff
+yarn cli [actions|rules|db|login] diff
 ```
 
 Diffs locally defined scripts against those defined on the Auth0 tenant.

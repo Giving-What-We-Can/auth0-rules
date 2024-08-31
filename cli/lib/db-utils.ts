@@ -1,7 +1,7 @@
 const { NODE_ENV } = process.env
 
 const CONNECTION_NAMES = {
-  development: 'Forum-User-Migration',
+  development: 'Username-Password-Authentication',
   staging: 'Username-Password-Authentication',
   production: 'Username-Password-Authentication',
 }

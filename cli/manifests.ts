@@ -30,7 +30,6 @@ export const RULE_MANIFEST: RuleDefinition[] = [
       const defaultRoleNames = [
         'User-Basic-Role',
         'Parfit User',
-        'EA Funds User',
         'Giving What We Can User',
       ]
       const Roles = await getAllRoles()
@@ -45,11 +44,7 @@ export const RULE_MANIFEST: RuleDefinition[] = [
     file: 'filter-scopes',
     enabled: true,
     getData: async () => {
-      const applicationNames = [
-        'EA Funds',
-        'Giving What We Can',
-        'Parfit Admin',
-      ]
+      const applicationNames = ['Giving What We Can']
       const Clients = await getAllClients()
       const whitelist = Clients.filter(isValidClient)
         .filter((Client) => applicationNames.includes(Client.name))
@@ -113,7 +108,6 @@ export const ACTION_MANIFEST: ActionDefinition[] = [
       const defaultRoleNames = [
         'User-Basic-Role',
         'Parfit User',
-        'EA Funds User',
         'Giving What We Can User',
       ]
       const Roles = await getAllRoles()
@@ -133,11 +127,7 @@ export const ACTION_MANIFEST: ActionDefinition[] = [
       // Get token namespace
       const namespace = process.env.TOKEN_NAMESPACE
 
-      const allowAllScopesApplicationNames = [
-        'EA Funds',
-        'Giving What We Can',
-        'Parfit Admin',
-      ]
+      const allowAllScopesApplicationNames = ['Giving What We Can']
 
       const scopesToIdTokenApplicationNames = ['Giving What We Can']
 

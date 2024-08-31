@@ -33,7 +33,8 @@
     "dotenv": "^8.2.0",
     "lodash": "^4.17.21",
     "mz": "^2.7.0",
-    "pg": "8.7.1"
+    "pg": "8.7.1",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@tepez/auth0-rules-types": "^0.3.1",
