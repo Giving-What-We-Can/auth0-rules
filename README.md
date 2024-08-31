@@ -2,6 +2,8 @@
 
 A utility for managing rule and db script definitions on an Auth0 tenant.
 
+This is a clone of a repository that used to be shared with the [Centre For Effective Altruism](https://www.centreforeffectivealtruism.org/). For historical pull request data, see [this Goole Drive folder](https://drive.google.com/drive/folders/1I8SAENok6iYvBIEeAqsGh7vi41jpr5G5) or ask CEA.
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
