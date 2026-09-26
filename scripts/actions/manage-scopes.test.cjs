@@ -1,14 +1,29 @@
 const assert = require('node:assert/strict')
-const { readFileSync } = require('node:fs')
-const path = require('node:path')
-const { test } = require('node:test')
+const { before, test } = require('node:test')
 const vm = require('node:vm')
 
-const code = readFileSync(
-  path.join(__dirname, '../../dist/dev-login/manage-scopes.js'),
-  'utf8'
-)
-const clientId = '0UXcKzf6y5O3RNdQC7KlUzkLiokPu1y2'
+// Initialize the generator with dummy credentials; never load .env or call Auth0.
+Object.assign(process.env, {
+  AUTH0_DOMAIN: 'offline-test.invalid',
+  AUTH0_CLIENT_ID: 'offline-test',
+  AUTH0_CLIENT_SECRET: 'offline-test',
+})
+delete process.env.TOKEN_NAMESPACE
+const utils = require('../../dist/lib/utils')
+const { getActionManifest, RULE_MANIFEST } = require('../../dist/manifests')
+const clientId = 'test-gwwc-client'
+utils.getAllClients = async () => [
+  { name: 'Giving What We Can', client_id: clientId },
+]
+process.env.AUTH0_DOMAIN = 'giving-what-we-can-dev.us.auth0.com'
+const actionManifest = getActionManifest()
+let code
+before(async () => {
+  code = await utils.generateCode(
+    actionManifest.find((action) => action.name === 'Manage scopes'),
+    'actions'
+  )
+})
 const claimName = 'https://parfit.givingwhatwecan.org//scope'
 const loginScopes = ['openid', 'profile', 'email', 'read:people']
 
@@ -187,14 +202,6 @@ test('a refresh without explicit scope is rejected; offline access is disabled i
 })
 
 test('manifest disables role assignment and obsolete scope Rules, retaining email and scope Actions', () => {
-  Object.assign(process.env, {
-    AUTH0_DOMAIN: 'giving-what-we-can-dev.us.auth0.com',
-    AUTH0_CLIENT_ID: 'offline-test',
-    AUTH0_CLIENT_SECRET: 'offline-test',
-  })
-  delete process.env.TOKEN_NAMESPACE
-  const { getActionManifest, RULE_MANIFEST } = require('../../dist/manifests')
-  const actionManifest = getActionManifest()
   assert.deepEqual(
     actionManifest
       .filter((action) => action.enabled)

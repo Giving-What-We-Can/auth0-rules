@@ -107,13 +107,7 @@ export function getActionManifest(): ActionDefinition[] {
 
 /** The custom database scripts remain separate from Post Login Actions. */
 export const DB_MANIFEST: DBActionScriptDefinition[] = [
-  {
-    name: 'login',
-    file: 'login',
-    getData: () => ({
-      production: getLoginTenant().environment === 'production',
-    }),
-  },
+  { name: 'login', file: 'login' },
   {
     name: 'get_user',
     file: 'get-user',

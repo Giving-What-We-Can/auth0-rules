@@ -10,12 +10,11 @@
     "build": "yarn build:cli && yarn build:scripts",
     "build:cli": "yarn tsc",
     "build:cli:watch": "yarn tsc --watch",
-    "build:dev-login": "yarn build && node scripts/build-dev-login.cjs",
     "build:scripts": "yarn tsc -p scripts/tsconfig.json",
     "build:scripts:watch": "yarn build:scripts --watch",
     "cli": "node -r dotenv/config dist/index",
     "prepare": "husky install",
-    "test:login": "yarn build:dev-login && node --test scripts/actions/manage-scopes.test.cjs scripts/reconciliation.test.cjs",
+    "test:login": "yarn build && node --test scripts/actions/manage-scopes.test.cjs scripts/reconciliation.test.cjs",
     "toc": "doctoc --maxlevel 3 --title '## Contents' README.md"
   },
   "lint-staged": {

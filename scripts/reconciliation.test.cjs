@@ -52,6 +52,8 @@ function loadCommand(command, client, utilityOverrides = {}) {
         if (name === '../../lib/utils')
           return { ...utils, printCodeDiff: () => [], ...utilityOverrides }
         if (name === '../../manifests') return manifests
+        if (name === '../../lib/db-utils')
+          return require('../dist/lib/db-utils')
         if (name === 'chalk') return require('chalk')
         if (name === 'diff') return require('diff')
         if (name === 'process')
@@ -260,7 +262,7 @@ test('diff shows binding changes even when disabled Action code is not generated
   assert.equal(fixture.bindingChanges.length, 0)
 })
 
-test('production custom Login preserves the supplied recovery guidance', async () => {
+test('custom Login rejects legacy passwords with generic recovery guidance', async () => {
   selectTenant('production')
   const code = await utils.generateCode(
     manifests.DB_MANIFEST.find((definition) => definition.name === 'login'),
@@ -285,7 +287,7 @@ test('production custom Login preserves the supplied recovery guidance', async (
   assert.equal(returnedError.identifier, 'test@example.invalid')
   assert.equal(
     returnedError.message,
-    'Incorrect email or password. Please try again.\nIf you had an effectivealtruism.org account before August 21, 2024: You may need to reset your password. Use the "Forgot Password" option.'
+    'Incorrect email or password. Try again or use "Forgot Password" to reset your password.'
   )
 })
 
@@ -314,4 +316,21 @@ test('a failed dev scope deployment leaves role assignment bound', async () => {
   await assert.rejects(command.run(), /exit 1/)
   assert.ok(fixture.boundNames().includes('Add Default Role To All Users'))
   assert.equal(fixture.bindingChanges.length, 1)
+})
+
+test('database commands reject unknown tenants before reading connections', async () => {
+  process.env.AUTH0_DOMAIN = 'unreviewed-staging.us.auth0.com'
+  let reads = 0
+  const overrides = {
+    getAllConnections: async () => {
+      reads++
+      return []
+    },
+  }
+  await assert.rejects(
+    loadCommand('db/diff', {}, overrides).run(),
+    /No reviewed login configuration/
+  )
+  await assert.rejects(loadCommand('db/deploy', {}, overrides).run(), /exit 1/)
+  assert.equal(reads, 0)
 })

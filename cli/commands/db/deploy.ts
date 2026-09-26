@@ -1,12 +1,13 @@
 import { red, green } from 'chalk'
 import auth0 from '../../lib/client'
 import { generateCode, getAllConnections } from '../../lib/utils'
-import { DB_MANIFEST } from '../../manifests'
+import { DB_MANIFEST, getLoginTenant } from '../../manifests'
 import { CONNECTION_NAME } from '../../lib/db-utils'
 import { exit } from 'process'
 
 export default async function run() {
   try {
+    getLoginTenant()
     const connections = await getAllConnections()
     const dbConnection = connections.find(
       (conn) => conn.name === CONNECTION_NAME
