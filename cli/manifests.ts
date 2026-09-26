@@ -1,198 +1,116 @@
-import {
-  getAllClients,
-  getAllRoles,
-  getCommentValue,
-  isValidClient,
-  isValidRole,
-} from './lib/utils'
-const { NODE_ENV } = process.env
+import { getAllClients, getCommentValue, isValidClient } from './lib/utils'
 
-/**
- * List of rules that should exist on the Auth0 tenant.
- *
- * Rules will be executed in the order they are defined
- */
+/** Only these tenants have a reviewed login configuration. */
+export function getLoginTenant() {
+  const domain = process.env.AUTH0_DOMAIN
+  if (domain === 'giving-what-we-can.us.auth0.com') {
+    return {
+      environment: 'production',
+      namespace: 'https://parfit.givingwhatwecan.org',
+    } as const
+  }
+  if (
+    domain === 'giving-what-we-can-dev.us.auth0.com' ||
+    domain === 'giving-what-we-can-dev.auth0.com'
+  ) {
+    return {
+      environment: 'development',
+      namespace: 'https://parfit.givingwhatwecan.org/',
+    } as const
+  }
+  throw new Error(
+    'No reviewed login configuration for AUTH0_DOMAIN. See README.'
+  )
+}
+
+/** Retire only these known Rules; preserve unlisted Rules such as account linking. */
 export const RULE_MANIFEST: RuleDefinition[] = [
   {
     name: 'Add email to access token',
     file: 'email-to-access-token',
-    enabled: true,
-    getData: () => {
-      const namespace = process.env.TOKEN_NAMESPACE
-      return { namespace }
-    },
+    enabled: false,
   },
   {
     name: 'Add Default Role To All Users',
     file: 'add-default-roles',
-    enabled: true,
-    getData: async () => {
-      const defaultRoleNames = [
-        'User-Basic-Role',
-        'Parfit User',
-        'Giving What We Can User',
-      ]
-      const Roles = await getAllRoles()
-      const defaultRoles = Roles.filter(isValidRole)
-        .filter((Role) => defaultRoleNames.includes(Role.name))
-        .map((Role) => getCommentValue({ value: Role.id, roleName: Role.name }))
-      return { defaultRoles }
-    },
+    enabled: false,
   },
-  {
-    name: 'Filter scopes',
-    file: 'filter-scopes',
-    enabled: true,
-    getData: async () => {
-      const applicationNames = ['Giving What We Can']
-      const Clients = await getAllClients()
-      const whitelist = Clients.filter(isValidClient)
-        .filter((Client) => applicationNames.includes(Client.name))
-        .map((Client) =>
-          getCommentValue({
-            applicationName: Client.name,
-            value: Client.client_id,
-          })
-        )
-      return { whitelist }
-    },
-  },
+  { name: 'Filter scopes', file: 'filter-scopes', enabled: false },
   {
     name: 'Add Scopes to ID Token',
     file: 'add-scopes-to-id-token',
-    enabled: true,
-    getData: async () => {
-      // Get token namespace
-      const namespace = process.env.TOKEN_NAMESPACE
-
-      // Get the list of applications on the whitelist
-      const applicationNames = ['Giving What We Can']
-      const Clients = await getAllClients()
-      const whitelist = Clients.filter(isValidClient)
-        .filter((Client) => applicationNames.includes(Client.name))
-        .map((Client) =>
-          getCommentValue({
-            applicationName: Client.name,
-            value: Client.client_id,
-          })
-        )
-      return { whitelist, namespace }
-    },
-  },
-  {
-    name: 'Log Context',
-    file: 'log-context',
     enabled: false,
   },
+  { name: 'Log Context', file: 'log-context', enabled: false },
 ]
 
-export const ACTION_MANIFEST: ActionDefinition[] = [
-  {
-    name: 'Add email to access token',
-    file: 'email-to-access-token',
-    enabled: true,
-    trigger: 'post-login',
-    triggerVersion: 'v3',
-    getData: () => {
-      const namespace = process.env.TOKEN_NAMESPACE
-      return { namespace }
+export function getActionManifest(): ActionDefinition[] {
+  const tenant = getLoginTenant()
+  // Preserve deployed claim names, including dev's existing double slash.
+  if (
+    process.env.TOKEN_NAMESPACE &&
+    process.env.TOKEN_NAMESPACE !== tenant.namespace
+  ) {
+    throw new Error(
+      'TOKEN_NAMESPACE differs from the reviewed tenant claim namespace.'
+    )
+  }
+  return [
+    {
+      name: 'Add email to access token',
+      file: 'email-to-access-token',
+      enabled: true,
+      trigger: 'post-login',
+      triggerVersion: 'v3',
+      getData: () => ({ namespace: tenant.namespace }),
     },
-  },
-  {
-    name: 'Add Default Role To All Users',
-    file: 'add-default-roles',
-    enabled: true,
-    trigger: 'post-login',
-    triggerVersion: 'v3',
-    getData: async () => {
-      const defaultRoleNames = [
-        'User-Basic-Role',
-        'Parfit User',
-        'Giving What We Can User',
-      ]
-      const Roles = await getAllRoles()
-      const defaultRoles = Roles.filter(isValidRole)
-        .filter((Role) => defaultRoleNames.includes(Role.name))
-        .map((Role) => getCommentValue({ value: Role.id, roleName: Role.name }))
-      return { defaultRoles }
+    // Deploy the replacement scope policy before unbinding default roles in dev.
+    tenant.environment === 'development'
+      ? {
+          name: 'Manage scopes',
+          file: 'manage-scopes',
+          enabled: true,
+          trigger: 'post-login',
+          triggerVersion: 'v3',
+          getData: async () => {
+            const clients = (await getAllClients())
+              .filter(isValidClient)
+              .filter((client) => client.name === 'Giving What We Can')
+            if (clients.length !== 1) {
+              throw new Error(
+                'Expected exactly one Giving What We Can application.'
+              )
+            }
+            const applications = clients.map((client) =>
+              getCommentValue({
+                applicationName: client.name,
+                value: client.client_id,
+              })
+            )
+            return {
+              apiScopeApplications: applications,
+              addScopesToIdTokenApplications: applications,
+              namespace: tenant.namespace,
+            }
+          },
+        }
+      : { name: 'Manage scopes', enabled: false, trigger: 'post-login' },
+    {
+      name: 'Add Default Role To All Users',
+      enabled: false,
+      trigger: 'post-login',
     },
-  },
-  {
-    name: 'Manage scopes',
-    file: 'manage-scopes',
-    enabled: true,
-    trigger: 'post-login',
-    triggerVersion: 'v3',
-    getData: async () => {
-      // Get token namespace
-      const namespace = process.env.TOKEN_NAMESPACE
+    { name: 'Expire passwords', enabled: false, trigger: 'post-login' },
+    { name: 'Log Context', enabled: false, trigger: 'post-login' },
+  ]
+}
 
-      const allowAllScopesApplicationNames = ['Giving What We Can']
-
-      const scopesToIdTokenApplicationNames = ['Giving What We Can']
-
-      const Clients = await getAllClients()
-      const validClients = Clients.filter(isValidClient)
-      const allowAllScopesWhitelist = validClients
-        .filter((Client) =>
-          allowAllScopesApplicationNames.includes(Client.name)
-        )
-        .map((Client) =>
-          getCommentValue({
-            applicationName: Client.name,
-            value: Client.client_id,
-          })
-        )
-
-      const addScopesToIdTokenApplications = Clients.filter(isValidClient)
-        .filter((Client) =>
-          scopesToIdTokenApplicationNames.includes(Client.name)
-        )
-        .map((Client) =>
-          getCommentValue({
-            applicationName: Client.name,
-            value: Client.client_id,
-          })
-        )
-
-      return {
-        allowAllScopesWhitelist,
-        addScopesToIdTokenApplications,
-        namespace,
-      }
-    },
-  },
-  {
-    name: 'Log Context',
-    file: 'log-context',
-    enabled: false,
-    trigger: 'post-login',
-    triggerVersion: 'v3',
-  },
-]
-
-/**
- * List of Database Action Scripts to Deploy.
- *
- * Should contain `login`, `get_user`, and nothing else.
- */
+/** The custom database scripts remain separate from Post Login Actions. */
 export const DB_MANIFEST: DBActionScriptDefinition[] = [
-  {
-    name: 'login',
-    file: 'login',
-    getData: async () => {
-      return {
-        pgShouldSsl: NODE_ENV !== 'development',
-      }
-    },
-  },
+  { name: 'login', file: 'login' },
   {
     name: 'get_user',
     file: 'get-user',
-    getData: async () => {
-      return {
-        pgShouldSsl: NODE_ENV !== 'development',
-      }
-    },
+    getData: () => ({ pgShouldSsl: process.env.NODE_ENV !== 'development' }),
   },
 ]

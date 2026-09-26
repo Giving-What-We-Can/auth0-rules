@@ -1,27 +1,57 @@
 import { generateCode, getAllActions, printCodeDiff } from '../../lib/utils'
 import { Change, diffLines } from 'diff'
-import { ACTION_MANIFEST } from '../../manifests'
+import { getActionManifest } from '../../manifests'
+import auth0 from '../../lib/client'
+import { paginateNestedQuery } from '../../lib/utils'
 import { GetActions200ResponseActionsInner as Action } from 'auth0'
 import { cyan, green, grey, magenta, red } from 'chalk'
 
 type DiffPair = [ActionDefinition, Action | undefined]
 
 export default async function run() {
+  const actionManifest = getActionManifest()
   const liveActions = await getAllActions()
+  const bindings = await paginateNestedQuery(
+    (pagination) =>
+      auth0.actions.getTriggerBindings({
+        triggerId: 'post-login',
+        ...pagination,
+      }),
+    'bindings'
+  )()
+  console.log('Post Login binding changes (unlisted Actions are preserved):')
+  for (const definition of actionManifest) {
+    const action = liveActions.find(
+      (candidate) => candidate.name === definition.name
+    )
+    const bound = bindings.some((binding) => binding.action.id === action?.id)
+    console.log(
+      `- ${definition.name}: ${bound ? 'bound' : 'unbound'} -> ${
+        definition.enabled ? 'bound' : 'unbound'
+      }`
+    )
+  }
+  console.log(
+    `Desired managed order: ${actionManifest
+      .filter((definition) => definition.enabled)
+      .map((definition) => definition.name)
+      .join(' -> ')}`
+  )
   // Match actions in the manifest to existing Auth0 actions
-  const matches: DiffPair[] = ACTION_MANIFEST.map((actionDef) => [
+  const matches: DiffPair[] = actionManifest.map((actionDef) => [
     actionDef,
     liveActions.find((action) => actionDef.name === action.name),
   ])
   // Actions that exist on Auth0 but are not defined in the manifest
   const extras: Action[] = liveActions.filter((action) =>
-    ACTION_MANIFEST.every((actionDef) => actionDef.name !== action.name)
+    actionManifest.every((actionDef) => actionDef.name !== action.name)
   )
   const diffs: [ActionDefinition, Change[]][] = []
   const missingActions: ActionDefinition[] = []
 
   // generate the diffs
   for (const [actionDef, action] of matches) {
+    if (!actionDef.enabled) continue
     if (!action?.code) {
       missingActions.push(actionDef)
       continue
@@ -36,10 +66,10 @@ export default async function run() {
     console.log(
       grey(
         `${
-          upToDateActions.length === ACTION_MANIFEST.length
+          upToDateActions.length === actionManifest.length
             ? 'All'
             : upToDateActions.length
-        } actions defined in the manifest are identical to those that exist on the Auth0 tenant:`
+        } actions defined in the manifest are identical to the drafts on the Auth0 tenant (not a deployed-version check):`
       )
     )
     console.log(

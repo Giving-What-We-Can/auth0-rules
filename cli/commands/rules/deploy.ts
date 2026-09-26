@@ -7,7 +7,7 @@ import {
   generateCode,
   formatUpdateRuleMessage,
 } from '../../lib/utils'
-import { RULE_MANIFEST } from '../../manifests'
+import { RULE_MANIFEST, getLoginTenant } from '../../manifests'
 
 function getLargestOrder(Rules: Rule[]): number {
   const ruleNames = RULE_MANIFEST.map((ruleDef) => ruleDef.name)
@@ -33,15 +33,24 @@ function getNextOrder(order: number, Rules: Rule[]): number {
 
 export default async function run() {
   try {
+    getLoginTenant()
     // get all rules currently defined on the Auth0 tenant
     const Rules = await getAllRules()
     // Get the order of the last rule
     let order = getLargestOrder(Rules)
     for (const ruleDef of RULE_MANIFEST) {
-      // generate the final script
-      const script = await generateCode(ruleDef, 'rules')
       // check if the rule exists
       const existingRule = Rules.find((Rule) => Rule.name === ruleDef.name)
+      if (!ruleDef.enabled) {
+        if (existingRule?.id && existingRule.enabled) {
+          await auth0.rules.update({ id: existingRule.id }, { enabled: false })
+        }
+        console.log(
+          `Retired Rule "${ruleDef.name}": disabled or absent; script preserved.`
+        )
+        continue
+      }
+      const script = await generateCode(ruleDef, 'rules')
       if (existingRule?.id) {
         // Update an existing rule
         formatUpdateRuleMessage(ruleDef.name, true)

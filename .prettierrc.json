@@ -1,11 +1,4 @@
 {
-  "experimentalBabelParserPluginsList": [
-    "jsx",
-    "typescript",
-    "classProperties"
-  ],
-  "importOrder": ["^[./]"],
-  "importOrderSeparation": true,
   "jsdocParser": true,
   "jsonRecursiveSort": true,
   "proseWrap": "always",

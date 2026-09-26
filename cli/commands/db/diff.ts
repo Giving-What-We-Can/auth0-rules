@@ -1,9 +1,10 @@
 import { Change, diffLines } from 'diff'
-import { DB_MANIFEST } from '../../manifests'
+import { DB_MANIFEST, getLoginTenant } from '../../manifests'
 import { CONNECTION_NAME } from '../../lib/db-utils'
 import { generateCode, getAllConnections, printCodeDiff } from '../../lib/utils'
 
 export default async function run() {
+  getLoginTenant()
   // NB: Connection is a term-of-art in Auth0 for an identity provider,
   // including the username/password database
   const connections = await getAllConnections()
