@@ -35,7 +35,15 @@ function loadCommand(command, client, utilityOverrides = {}) {
     ),
     {
       exports,
+      __dirname: path.join(
+        __dirname,
+        '../dist/commands',
+        path.dirname(command)
+      ),
       process: {
+        exit: (code) => {
+          throw new Error(`exit ${code}`)
+        },
         env: {
           AUTH0_DOMAIN: 'offline-test.invalid',
           AUTH0_CLIENT_ID: 'dummy',
@@ -54,6 +62,9 @@ function loadCommand(command, client, utilityOverrides = {}) {
         if (name === '../../manifests') return manifests
         if (name === '../../lib/db-utils')
           return require('../dist/lib/db-utils')
+        if (name === 'path') return path
+        if (name === 'mz')
+          return { fs: { readFile: async () => Buffer.from('{}') } }
         if (name === 'chalk') return require('chalk')
         if (name === 'diff') return require('diff')
         if (name === 'process')
@@ -333,4 +344,38 @@ test('database commands reject unknown tenants before reading connections', asyn
   )
   await assert.rejects(loadCommand('db/deploy', {}, overrides).run(), /exit 1/)
   assert.equal(reads, 0)
+})
+
+test('login deployment waits for signup text and handles its failure', async () => {
+  let rejectUpdate
+  const update = new Promise((resolve, reject) => {
+    rejectUpdate = reject
+  })
+  const command = loadCommand('login/deploy', {
+    branding: { setUniversalLoginTemplate: async () => {} },
+    prompts: { updateCustomTextByLanguage: () => update },
+  })
+  let completed = false
+  const result = command.run()
+  result.then(
+    () => {
+      completed = true
+    },
+    () => {
+      completed = true
+    }
+  )
+  await new Promise(setImmediate)
+  assert.equal(
+    completed,
+    false,
+    'Deployment must wait for the signup-text request'
+  )
+  rejectUpdate(new Error('Signup-text update failed'))
+  await assert.rejects(result, /exit 1/)
+  assert.ok(
+    command.messages.some((message) =>
+      message.includes('Signup-text update failed')
+    )
+  )
 })

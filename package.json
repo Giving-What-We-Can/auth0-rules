@@ -14,12 +14,10 @@
     "build:scripts:watch": "yarn build:scripts --watch",
     "cli": "node -r dotenv/config dist/index",
     "prepare": "husky install",
-    "test:login": "yarn build && node --test scripts/actions/manage-scopes.test.cjs scripts/reconciliation.test.cjs",
-    "toc": "doctoc --maxlevel 3 --title '## Contents' README.md"
+    "test:login": "yarn build && node --test scripts/actions/manage-scopes.test.cjs scripts/reconciliation.test.cjs"
   },
   "lint-staged": {
     "README.md": [
-      "yarn toc",
       "prettier --loglevel warn --write"
     ],
     "**/*.{ts,json}": [
@@ -50,7 +48,6 @@
     "@typescript-eslint/eslint-plugin": "^4.21.0",
     "@typescript-eslint/parser": "^4.21.0",
     "commander": "^7.2.0",
-    "doctoc": "^2.0.0",
     "eslint": "^7.24.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-import": "^2.22.1",

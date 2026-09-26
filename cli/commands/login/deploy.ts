@@ -31,7 +31,7 @@ async function deployCustomText() {
     ).toString()
   )
 
-  auth0.prompts.updateCustomTextByLanguage(
+  await auth0.prompts.updateCustomTextByLanguage(
     {
       prompt: 'signup',
       language: 'en',
