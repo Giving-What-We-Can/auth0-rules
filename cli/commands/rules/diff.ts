@@ -1,12 +1,13 @@
 import { generateCode, getAllRules, printCodeDiff } from '../../lib/utils'
 import { Change, diffLines } from 'diff'
-import { RULE_MANIFEST } from '../../manifests'
+import { RULE_MANIFEST, getLoginTenant } from '../../manifests'
 import { Rule } from 'auth0'
 import { cyan, green, grey, magenta, red } from 'chalk'
 
 type DiffPair = [RuleDefinition, Rule | undefined]
 
 export default async function run() {
+  getLoginTenant()
   const Rules = await getAllRules()
   // Match rules in the manifest to existing Auth0 rules
   const matches: DiffPair[] = RULE_MANIFEST.map((ruleDef) => [
@@ -21,6 +22,16 @@ export default async function run() {
   const missingRules: RuleDefinition[] = []
   // generate the diffs
   for (const [ruleDef, Rule] of matches) {
+    if (!ruleDef.enabled) {
+      console.log(
+        `- ${ruleDef.name}: ${
+          Rule?.enabled
+            ? 'enabled -> disabled'
+            : 'disabled or absent (unchanged)'
+        }`
+      )
+      continue
+    }
     if (!Rule?.script) {
       missingRules.push(ruleDef)
       continue

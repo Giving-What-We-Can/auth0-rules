@@ -1,6 +1,6 @@
 import { generateCode, paginateNestedQuery } from '../../lib/utils'
 import auth0 from '../../lib/client'
-import { ACTION_MANIFEST } from '../../manifests'
+import { getActionManifest } from '../../manifests'
 import { red, green } from 'chalk'
 import { exit } from 'process'
 import { getAllActions } from '../../lib/utils'
@@ -33,9 +33,8 @@ async function ensureTriggerBindingState({
   insertAfter: string[]
 }) {
   const prevTriggerBindings = await paginateNestedQuery(
-    auth0.actions.getTriggerBindings.bind(auth0.actions, {
-      triggerId,
-    }),
+    (pagination) =>
+      auth0.actions.getTriggerBindings({ triggerId, ...pagination }),
     'bindings'
   )()
 
@@ -90,10 +89,24 @@ async function deployAction({
   existingActions: Action[]
   insertAfter: string[]
 }) {
-  const script = await generateCode(actionDef, 'actions')
   const existingAction = existingActions.find(
     (existing) => existing.name === actionDef.name
   )
+
+  if (!actionDef.enabled) {
+    if (existingAction) {
+      await ensureTriggerBindingState({
+        bindingName: getBindingName(actionDef),
+        triggerId: actionDef.trigger,
+        actionId: existingAction.id,
+        bound: false,
+        insertAfter,
+      })
+    }
+    console.log('Stored Action code and versions preserved.')
+    return
+  }
+  const script = await generateCode(actionDef, 'actions')
 
   const actionPayload = {
     name: actionDef.name,
@@ -117,11 +130,6 @@ async function deployAction({
       bound: actionDef.enabled,
       insertAfter,
     })
-
-  // If the desired final state is disabled, disable before updating
-  if (!actionDef.enabled && existingAction) {
-    await updateEnabled(existingAction.id)
-  }
 
   const createOrUpdateAction = async () => {
     if (existingAction) {
@@ -148,6 +156,7 @@ async function deployAction({
       ) {
         console.error('Unexpected error, retrying after 1s: ', e)
       }
+      if (i === 4) throw e
       await new Promise((resolve) => setTimeout(resolve, 1000))
     }
   }
@@ -162,11 +171,12 @@ async function deployAction({
 
 export default async function run() {
   try {
+    const actionManifest = getActionManifest()
     const liveActions = await getAllActions()
-    for (let i = 0; i < ACTION_MANIFEST.length; i++) {
-      const actionDef = ACTION_MANIFEST[i]
+    for (let i = 0; i < actionManifest.length; i++) {
+      const actionDef = actionManifest[i]
       console.log(`Updating action "${actionDef.name}":`)
-      const insertAfter = ACTION_MANIFEST.slice(0, i).map(getBindingName)
+      const insertAfter = actionManifest.slice(0, i).map(getBindingName)
       await deployAction({
         actionDef: actionDef,
         existingActions: liveActions,
